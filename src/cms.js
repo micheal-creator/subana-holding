@@ -21,12 +21,37 @@ const SEED = {
 }
 
 export function getCms() {
-  try { return { ...SEED, ...JSON.parse(localStorage.getItem(KEY) || '{}') } } catch { return SEED }
+  let value
+  try { value = { ...SEED, ...JSON.parse(localStorage.getItem(KEY) || '{}') } } catch { value = SEED }
+  applyToPublicData(value)
+  return value
 }
 
 export function saveCms(next) {
   localStorage.setItem(KEY, JSON.stringify(next))
+  applyToPublicData(next)
   window.dispatchEvent(new Event('subana-cms-updated'))
 }
 
 export function resetCms() { saveCms(SEED); return SEED }
+
+// Keep the existing public components compatible while moving their source of
+// truth from bundled seed arrays to the CMS snapshot. Public pages import these
+// arrays directly, so updating them in place makes saved edits visible after
+// navigation without requiring a full app rewrite.
+function replaceArray(target, next) {
+  target.splice(0, target.length, ...(Array.isArray(next) ? next : []))
+}
+
+function applyToPublicData(value) {
+  Object.assign(COMPANY, value.settings || {})
+  replaceArray(TEAM, value.team)
+  replaceArray(PROJECTS, value.projects)
+  replaceArray(SERVICES, value.services)
+  replaceArray(FAQS, (value.faqs || []).map(({ id, ...item }) => item))
+  replaceArray(POSTS, value.posts)
+}
+
+// Hydrate the public data before the first route renders, including direct
+// visits to a detail page.
+getCms()
