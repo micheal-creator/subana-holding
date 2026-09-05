@@ -21,3 +21,10 @@
   .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1); }
   .reveal.in { opacity: 1; transform: none; }
 }
+
+/* The landing hero uses a real office scene with a restrained brand overlay. */
+main > section:first-child {
+  background-image: linear-gradient(rgba(16, 42, 67, 0.84), rgba(16, 42, 67, 0.9)), url('https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1800&q=85');
+  background-position: center;
+  background-size: cover;
+}
