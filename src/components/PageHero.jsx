@@ -1,0 +1,2 @@
+import Reveal from '../lib/Reveal.jsx'
+export default function PageHero({ eyebrow, title, text }) { return <section className="bg-navy py-20 text-white sm:py-28"><div className="container-site max-w-4xl"><Reveal><p className="eyebrow text-gold">{eyebrow}</p><h1 className="mt-3 text-5xl sm:text-7xl">{title}</h1>{text && <p className="mt-5 max-w-2xl text-lg leading-relaxed text-white/70">{text}</p>}</Reveal></div></section> }

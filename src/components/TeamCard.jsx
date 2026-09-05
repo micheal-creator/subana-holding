@@ -1,0 +1,4 @@
+import { ArrowUpRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import Reveal from '../lib/Reveal.jsx'
+export default function TeamCard({ member, index = 0 }) { return <Reveal delay={index * 70}><Link to={`/team/${member.id}`} className="group block"><div className="aspect-[4/3] rounded-lg bg-soft p-6 transition-colors group-hover:bg-teal"><div className="flex h-full flex-col justify-between"><span className="grid h-16 w-16 place-items-center rounded-full bg-navy font-display text-xl text-white group-hover:bg-white group-hover:text-navy">{member.initials}</span><div><h3 className="text-2xl group-hover:text-white">{member.name}</h3><p className="mt-1 text-sm text-muted group-hover:text-white/70">{member.role}</p><span className="mt-4 inline-flex items-center gap-1 text-sm font-bold text-teal group-hover:text-gold">View profile <ArrowUpRight size={15} /></span></div></div></div></Link></Reveal> }

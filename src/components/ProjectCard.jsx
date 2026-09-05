@@ -1,0 +1,4 @@
+import { ArrowUpRight } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import Reveal from '../lib/Reveal.jsx'
+export default function ProjectCard({ project, index = 0 }) { return <Reveal delay={index * 70}><Link to={`/projects/${project.id}`} className="group block"><div className={`relative flex min-h-[270px] flex-col justify-between overflow-hidden rounded-lg p-6 ${project.color === 'teal' ? 'bg-teal' : project.color === 'gold' ? 'bg-gold' : 'bg-navy'} text-white transition-transform duration-300 group-hover:-translate-y-1`}><span className="text-xs font-bold uppercase tracking-[.15em] text-white/65">{project.category} · {project.year}</span><div><h3 className="text-3xl">{project.title}</h3><p className="mt-2 max-w-sm text-sm text-white/75">{project.summary}</p><span className="mt-5 inline-flex items-center gap-2 text-sm font-bold">View project <ArrowUpRight size={16} /></span></div></div></Link></Reveal> }

@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+@layer base {
+  html { scroll-behavior: smooth; }
+  body { @apply bg-paper text-ink font-sans antialiased; line-height: 1.6; }
+  h1,h2,h3,h4 { @apply font-display; line-height: 1.12; }
+  ::selection { background: #d9ece8; }
+  :where(a,button,input,textarea,select):focus-visible { outline: 3px solid #0f766e; outline-offset: 3px; }
+  @media (prefers-reduced-motion: reduce) { *,*::before,*::after { animation-duration:.001ms!important; transition-duration:.001ms!important; scroll-behavior:auto!important; } }
+}
+@layer components {
+  .container-site { @apply mx-auto w-full max-w-site px-5 sm:px-8; }
+  .eyebrow { @apply text-xs font-bold uppercase tracking-[.18em] text-teal; }
+  .btn { @apply inline-flex min-h-[48px] items-center justify-center gap-2 rounded-md px-5 py-3 text-sm font-bold transition-all duration-200 active:scale-[.98]; }
+  .btn-primary { @apply btn bg-navy text-white hover:bg-teal; }
+  .btn-gold { @apply btn bg-gold text-white hover:bg-[#ad8033]; }
+  .btn-outline { @apply btn border border-line bg-white text-navy hover:border-teal hover:text-teal; }
+  .card { @apply rounded-lg border border-line bg-white shadow-soft; }
+  .input { @apply w-full rounded-md border border-line bg-white px-4 py-3 text-sm outline-none transition focus:border-teal focus:ring-4 focus:ring-teal/10; }
+  .reveal { opacity: 0; transform: translateY(18px); transition: opacity .7s cubic-bezier(.22,1,.36,1),transform .7s cubic-bezier(.22,1,.36,1); }
+  .reveal.in { opacity: 1; transform: none; }
+}
