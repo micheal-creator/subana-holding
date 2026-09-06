@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { getCms } from '../cms.js'
+import { getCms, loadCms } from '../cms.js'
 
 const CmsContext = createContext(null)
 const KEY = 'subana:cms:v1'
@@ -9,6 +9,7 @@ export function CmsProvider({ children }) {
 
   useEffect(() => {
     const refresh = () => setSnapshot(getCms())
+    loadCms().then(setSnapshot).catch(() => {})
     const onStorage = (event) => event.key === KEY && refresh()
     window.addEventListener('subana-cms-updated', refresh)
     window.addEventListener('storage', onStorage)

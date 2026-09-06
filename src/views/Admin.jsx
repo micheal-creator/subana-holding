@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Briefcase, Check, ExternalLink, FileText, HelpCircle, Image, LayoutDashboard, LogOut, Newspaper, Plus, RotateCcw, Save, Settings, Trash2, Users } from 'lucide-react'
 import { Link } from 'react-router-dom'
-import { getCms, resetCms, saveCms } from '../cms.js'
+import { getCms, resetCms, saveCms, uploadMedia } from '../cms.js'
+import { hasSupabase, supabase } from '../supabase.js'
 
 const SECTIONS = [
   ['team', 'Team', Users], ['projects', 'Projects', Briefcase], ['services', 'Services', Settings],
@@ -36,7 +37,8 @@ const inputClass = 'input'
 function Login({ onLogin }) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  return <div className="grid min-h-[70vh] place-items-center"><form onSubmit={(e) => { e.preventDefault(); localStorage.setItem('subana:admin', '1'); onLogin() }} className="card w-full max-w-md space-y-4 p-7"><div className="grid h-12 w-12 place-items-center rounded-full bg-teal text-white"><Settings /></div><h1 className="text-3xl">Admin workspace</h1><p className="text-sm text-muted">Manage Subana Holding without editing code.</p><input className={inputClass} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required /><input className={inputClass} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required /><button className="btn-primary w-full">Sign in</button><p className="text-xs text-muted">Demo mode: any email and password works until Supabase authentication is connected.</p></form></div>
+  async function submit(e) { e.preventDefault(); if (hasSupabase) { const { error } = await supabase.auth.signInWithPassword({ email, password }); if (error) { alert(error.message); return } } localStorage.setItem('subana:admin', '1'); onLogin() }
+  return <div className="grid min-h-[70vh] place-items-center"><form onSubmit={submit} className="card w-full max-w-md space-y-4 p-7"><div className="grid h-12 w-12 place-items-center rounded-full bg-teal text-white"><Settings /></div><h1 className="text-3xl">Admin workspace</h1><p className="text-sm text-muted">Manage Subana Holding without editing code.</p><input className={inputClass} type="email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} required /><input className={inputClass} type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} required /><button className="btn-primary w-full">Sign in</button><p className="text-xs text-muted">{hasSupabase ? 'Use your approved Supabase admin account.' : 'Demo mode: any email and password works.'}</p></form></div>
 }
 
 function Field({ config, value, onChange }) {
@@ -45,7 +47,7 @@ function Field({ config, value, onChange }) {
   if (type === 'list') return <label className="block space-y-1.5"><span className="field-label">{label} <span className="font-normal text-faint">(separate with commas)</span></span><input className={inputClass} value={Array.isArray(value) ? value.join(', ') : value || ''} onChange={(e) => onChange(key, e.target.value.split(',').map((x) => x.trim()).filter(Boolean))} /></label>
   if (type === 'boolean') return <label className="flex min-h-12 items-center gap-3 rounded-md border border-line px-4"><input type="checkbox" checked={value !== false} onChange={(e) => onChange(key, e.target.checked)} /><span className="text-sm font-semibold">{label}</span></label>
   if (type === 'select') return <label className="block space-y-1.5"><span className="field-label">{label}</span><select className={inputClass} value={value || 'published'} onChange={(e) => onChange(key, e.target.value)}><option value="published">Published</option><option value="draft">Draft</option></select></label>
-  if (type === 'image') return <label className="block space-y-1.5"><span className="field-label">{label}</span>{value && <img src={value} alt="Current" className="mb-2 h-32 w-full rounded-md object-cover" />}<input className={inputClass} value={value || ''} onChange={(e) => onChange(key, e.target.value)} placeholder="https://… or upload below" /><input type="file" accept="image/*" className="mt-2 block w-full text-xs text-muted" onChange={(e) => { const file = e.target.files?.[0]; if (!file) return; const reader = new FileReader(); reader.onload = () => onChange(key, reader.result); reader.readAsDataURL(file) }} /></label>
+  if (type === 'image') return <label className="block space-y-1.5"><span className="field-label">{label}</span>{value && <img src={value} alt="Current" className="mb-2 h-32 w-full rounded-md object-cover" />}<input className={inputClass} value={value || ''} onChange={(e) => onChange(key, e.target.value)} placeholder="https://… or upload below" /><input type="file" accept="image/*" className="mt-2 block w-full text-xs text-muted" onChange={async (e) => { const file = e.target.files?.[0]; if (!file) return; try { onChange(key, await uploadMedia(file)) } catch { alert('Image upload failed. Check Supabase Storage and admin permissions.') } }} /></label>
   return <label className="block space-y-1.5"><span className="field-label">{label}</span><input className={inputClass} type={type} value={value || ''} onChange={(e) => onChange(key, e.target.value)} /></label>
 }
 

@@ -16,3 +16,12 @@ create policy "public can read media" on public.media for select using (true);
 create policy "admins manage media" on public.media for all using (public.is_admin()) with check (public.is_admin());
 create policy "users read own profile" on public.profiles for select using (auth.uid()=id);
 insert into storage.buckets (id, name, public) values ('site-media','site-media',true) on conflict (id) do nothing;
+create policy "public media read" on storage.objects for select using (bucket_id='site-media');
+create policy "admin media insert" on storage.objects for insert with check (bucket_id='site-media' and public.is_admin());
+create policy "admin media update" on storage.objects for update using (bucket_id='site-media' and public.is_admin());
+create policy "admin media delete" on storage.objects for delete using (bucket_id='site-media' and public.is_admin());
+
+create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$
+begin insert into public.profiles(id,email) values(new.id,new.email) on conflict(id) do nothing; return new; end; $$;
+drop trigger if exists on_auth_user_created on auth.users;
+create trigger on_auth_user_created after insert on auth.users for each row execute function public.handle_new_user();

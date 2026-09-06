@@ -1,4 +1,5 @@
 import { COMPANY, FAQS, POSTS, PROJECTS, SERVICES, TEAM } from './data.js'
+import { hasSupabase, supabase } from './supabase.js'
 
 const KEY = 'subana:cms:v1'
 const SEED = {
@@ -20,30 +21,75 @@ const SEED = {
   ],
 }
 
+function localCms() {
+  try { return { ...SEED, ...JSON.parse(localStorage.getItem(KEY) || '{}') } } catch { return SEED }
+}
+
 export function getCms() {
-  let value
-  try { value = { ...SEED, ...JSON.parse(localStorage.getItem(KEY) || '{}') } } catch { value = SEED }
+  const value = localCms()
   applyToPublicData(value)
   return value
 }
 
-export function saveCms(next) {
+export async function loadCms() {
+  if (!hasSupabase) return getCms()
+  const [{ data: settings }, { data: rows, error }] = await Promise.all([
+    supabase.from('site_settings').select('data').eq('id', 'global').maybeSingle(),
+    supabase.from('site_content').select('collection,slug,data,status,sort_order').eq('status', 'published').order('sort_order'),
+  ])
+  if (error) throw error
+  if (!settings && (!rows || rows.length === 0)) return getCms()
+  const value = { ...SEED, settings: settings?.data || SEED.settings }
+  for (const key of ['team', 'projects', 'services', 'faqs', 'posts', 'gallery', 'pricing', 'pages']) {
+    const found = (rows || []).filter((r) => r.collection === key).map((r) => ({ id: r.slug, ...r.data }))
+    if (found.length) value[key] = found
+  }
+  value._revision = Date.now()
+  localStorage.setItem(KEY, JSON.stringify(value))
+  applyToPublicData(value)
+  return value
+}
+
+export async function saveCms(next) {
   const value = { ...next, _revision: Date.now() }
   localStorage.setItem(KEY, JSON.stringify(value))
   applyToPublicData(value)
+  if (hasSupabase) {
+    const { error: settingsError } = await supabase.from('site_settings').upsert({ id: 'global', data: value.settings, updated_at: new Date().toISOString() })
+    if (settingsError) throw settingsError
+    const collections = ['team', 'projects', 'services', 'faqs', 'posts', 'gallery', 'pricing', 'pages']
+    for (const collection of collections) {
+      const items = Array.isArray(value[collection]) ? value[collection] : []
+      const { error: deleteError } = await supabase.from('site_content').delete().eq('collection', collection)
+      if (deleteError) throw deleteError
+      if (items.length) {
+        const rows = items.map((item, index) => {
+          const { id, ...data } = item
+          return { collection, slug: id || `${collection}-${index + 1}`, data, status: item.status || 'published', sort_order: index, updated_at: new Date().toISOString() }
+        })
+        const { error } = await supabase.from('site_content').insert(rows)
+        if (error) throw error
+      }
+    }
+  }
   window.dispatchEvent(new Event('subana-cms-updated'))
+  return value
 }
 
-export function resetCms() { saveCms(SEED); return SEED }
-
-// Keep the existing public components compatible while moving their source of
-// truth from bundled seed arrays to the CMS snapshot. Public pages import these
-// arrays directly, so updating them in place makes saved edits visible after
-// navigation without requiring a full app rewrite.
-function replaceArray(target, next) {
-  target.splice(0, target.length, ...(Array.isArray(next) ? next : []))
+export async function uploadMedia(file) {
+  if (!hasSupabase) {
+    return await new Promise((resolve) => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsDataURL(file) })
+  }
+  const ext = file.name.split('.').pop() || 'jpg'
+  const path = `uploads/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+  const { error } = await supabase.storage.from('site-media').upload(path, file, { upsert: false })
+  if (error) throw error
+  return supabase.storage.from('site-media').getPublicUrl(path).data.publicUrl
 }
 
+export async function resetCms() { await saveCms(SEED); return SEED }
+
+function replaceArray(target, next) { target.splice(0, target.length, ...(Array.isArray(next) ? next : [])) }
 function applyToPublicData(value) {
   Object.assign(COMPANY, value.settings || {})
   replaceArray(TEAM, value.team)
@@ -53,6 +99,4 @@ function applyToPublicData(value) {
   replaceArray(POSTS, value.posts)
 }
 
-// Hydrate the public data before the first route renders, including direct
-// visits to a detail page.
 getCms()
