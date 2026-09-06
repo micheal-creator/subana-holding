@@ -1,4 +1,5 @@
 import { COMPANY, FAQS, POSTS, PROJECTS, SERVICES, TEAM } from './data.js'
+import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 
 const KEY = 'subana:cms:v1'
 const SEED = {
@@ -55,3 +56,30 @@ function applyToPublicData(value) {
 // Hydrate the public data before the first route renders, including direct
 // visits to a detail page.
 getCms()
+
+// Reactive bridge between the admin workspace and public pages. The public
+// site and CMS can be open in separate tabs; both same-tab custom events and
+// cross-tab storage events refresh the public data before rendering.
+const CmsContext = createContext(null)
+
+export function CmsProvider({ children }) {
+  const [snapshot, setSnapshot] = useState(() => getCms())
+
+  useEffect(() => {
+    const refresh = () => setSnapshot(getCms())
+    window.addEventListener('subana-cms-updated', refresh)
+    window.addEventListener('storage', (event) => {
+      if (event.key === KEY) refresh()
+    })
+    return () => {
+      window.removeEventListener('subana-cms-updated', refresh)
+    }
+  }, [])
+
+  const value = useMemo(() => snapshot, [snapshot])
+  return <CmsContext.Provider value={value}>{children}</CmsContext.Provider>
+}
+
+export function useCms() {
+  return useContext(CmsContext) || getCms()
+}
